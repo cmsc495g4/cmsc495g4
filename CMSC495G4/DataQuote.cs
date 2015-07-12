@@ -20,6 +20,7 @@ namespace CMSC495G4
             this.toCurrency = toCurrency;
             this.bidRate = bidRate;
             this.askRate = askRate;
+            this.timeStamp = timeStamp;
         }
 
         public Currency getFromCurrency()

@@ -8,6 +8,10 @@ namespace CMSC495G4
 {
     class ConversionEngine
     {
+        //
+        // Field variables
+        //
+
         private GUI gui = null;
         private DataProvider dataProvider = null;
 
@@ -17,6 +21,10 @@ namespace CMSC495G4
         private double toAmount = -1;
         private double rate = 0;
         private string status = "";
+
+        //
+        // Interface methods
+        //
 
         public ConversionEngine(GUI gui)
         {
