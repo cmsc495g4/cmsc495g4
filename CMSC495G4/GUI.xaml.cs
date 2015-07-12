@@ -40,6 +40,8 @@ namespace CMSC495G4
             conversionEngine = new ConversionEngine(this);
 
             GUIInitialize();
+
+            updateDisplay();
         }
 
         public void buttonConvert()
@@ -56,16 +58,19 @@ namespace CMSC495G4
 
         public void fromAmountChanged()
         {
+            updateDisplay();
             conversionEngine.setFromAmount(fromAmount);
         }
 
         public void fromCurrencyChanged()
         {
+            updateDisplay();
             conversionEngine.setFromCurrency(fromCurrency);
         }
 
         public void toCurrencyChanged()
         {
+            updateDisplay();
             conversionEngine.setToCurrency(toCurrency);
         }
 
@@ -74,7 +79,28 @@ namespace CMSC495G4
             double toAmount = conversionEngine.getToAmount();
             GUISetToAmount(toAmount >= 0 ? toAmount.ToString("N2") : "");
 
-            GUISetStatus(conversionEngine.getStatus());
+            bool haveFromAmount = fromAmount >= 0;
+            bool haveFromCurrency = fromCurrency != Currency.None;
+            bool haveToCurrency = toCurrency != Currency.None;
+            bool haveAll = haveFromAmount && haveFromCurrency && haveToCurrency;
+
+            string message = "";
+            if (!haveAll)
+            {
+                message = "Welcome to Currency Converter. Please select";
+                int num = 0;
+                int exp = 0 + (!haveFromAmount ? 1 : 0) + (!haveFromCurrency ? 1 : 0) + (!haveToCurrency ? 1 : 0);
+                if (!haveFromAmount) { message += (num > 0 && exp > 2 ? "," : "") + (num == exp - 1 && exp >= 2 ? " and" : "") + " from amount"; num++; }
+                if (!haveFromCurrency) { message += (num > 0 && exp > 2 ? "," : "") + (num == exp - 1 && exp >= 2 ? " and" : "") + " from currency"; num++; }
+                if (!haveToCurrency) { message += (num > 0 && exp > 2 ? "," : "") + (num == exp - 1 && exp >= 2 ? " and" : "") + " to currency"; num++; }
+                message += ".";
+            }
+            else
+            {
+                message = conversionEngine.getStatus();
+            }
+                             
+            GUISetStatus(message);
         }
 
         //

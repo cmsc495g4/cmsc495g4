@@ -11,6 +11,10 @@ namespace CMSC495G4
 {
     class DataProvider
     {
+        //
+        // Field variables
+        //
+
         private const double updateMilliseconds = 500;
         private const string dataURL = "http://webrates.truefx.com/rates/connect.html?f=csv";
 
@@ -25,6 +29,10 @@ namespace CMSC495G4
         private string status = "";
 
         private static System.Timers.Timer timer;
+
+        //
+        // Interface methods
+        //
 
         public DataProvider(ConversionEngine conversionEngine)
         {
@@ -243,6 +251,10 @@ namespace CMSC495G4
 
             return 0;
         }
+
+        //
+        // Windows Presentation Framework 
+        //
 
         private static void OnTimedEvent(object source, ElapsedEventArgs e)
         {
