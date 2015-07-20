@@ -115,6 +115,10 @@ namespace CMSC495G4
             {
                 toAmount = fromAmount * rate;
                 status = "Conversion Rate: 1 " + fromCurrency + " = " + rate.ToString("N5") + " " + toCurrency;
+                if (dataProvider.getStatus() != "")
+                {
+                    status += " (" + dataProvider.getStatus() + ")";
+                }
             }
 
             if ((toAmount != wasAmount) || (status != wasStatus)) gui.updateDisplay();

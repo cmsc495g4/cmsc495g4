@@ -17,6 +17,8 @@ namespace CMSC495G4
 
         private const double updateMilliseconds = 500;
         private const string dataURL = "http://webrates.truefx.com/rates/connect.html?f=csv";
+        private const string backupURL = "http://www.google.com/finance?q=";
+        private const string backupMarker = "<span class=bld>";
 
         private static List<DataProvider> dataProviderList = new List<DataProvider>();
 
@@ -205,7 +207,15 @@ namespace CMSC495G4
             else
             {
                 rate = scanRate(fromCurrency, toCurrency, true);
-                status = rate > 0 ? "" : fromCurrency + " to " + toCurrency + " unavailable";
+                if (rate <= 0)
+                {
+                    rate = backupRate(fromCurrency, toCurrency);
+                    status = rate > 0 ? "backup" : fromCurrency + " to " + toCurrency + " unavailable";
+                }
+                else
+                {
+                    status = rate > 0 ? "" : fromCurrency + " to " + toCurrency + " unavailable";
+                }
             }
 
             if ((rate != wasRate) || (status != wasStatus)) conversionEngine.setRate(rate);
@@ -246,6 +256,57 @@ namespace CMSC495G4
                 {
                     double secRate = scanRate(quoteFromCurrency, toCurrency, false);
                     if (secRate > 0) return quoteBidRate / secRate;
+                }
+            }
+
+            return 0;
+        }
+
+        private double backupRate(Currency fromCurrency, Currency toCurrency)
+        {
+            string url = backupURL + fromCurrency + toCurrency;
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+            HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                Stream receiveStream = response.GetResponseStream();
+                StreamReader readStream = null;
+
+                if (response.CharacterSet == null)
+                {
+                    readStream = new StreamReader(receiveStream);
+                }
+                else
+                {
+                    readStream = new StreamReader(receiveStream, Encoding.GetEncoding(response.CharacterSet));
+                }
+
+                string data = readStream.ReadToEnd();
+
+                response.Close();
+                readStream.Close();
+
+                dataQuotes.Clear();
+                string[] lines = data.Split('\n');
+                foreach (string line in lines)
+                {
+                    int i1 = line.IndexOf(backupMarker);
+                    if (i1 > 0) 
+                    {
+                        string s = line.Substring(i1 + backupMarker.Length).Trim();
+                        int i2 = s.IndexOf(" ");
+                        if (i2 > 0)
+                        {
+                            s = s.Substring(0, i2);
+                            double r = 0;
+                            bool success = double.TryParse(s, out r);
+                            if (success && (r > 0))
+                            {
+                                return r;
+                            }
+                        }
+                    }
                 }
             }
 
