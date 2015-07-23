@@ -241,12 +241,10 @@ namespace CMSC495G4
 
                 if ((quoteFromCurrency == fromCurrency) && (quoteToCurrency == toCurrency))
                 {
-                    Console.Out.WriteLine("Match " + fromCurrency.ToString() + " to " + toCurrency.ToString());
                     return quoteBidRate;
                 }
                 else if ((quoteToCurrency == fromCurrency) && (quoteFromCurrency == toCurrency))
                 {
-                    Console.Out.WriteLine("Reverse " + fromCurrency.ToString() + " to " + toCurrency.ToString());
                     return 1.0 / quoteAskRate;
                 }
             }
