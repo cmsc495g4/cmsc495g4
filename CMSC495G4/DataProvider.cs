@@ -241,21 +241,37 @@ namespace CMSC495G4
 
                 if ((quoteFromCurrency == fromCurrency) && (quoteToCurrency == toCurrency))
                 {
+                    Console.Out.WriteLine("Match " + fromCurrency.ToString() + " to " + toCurrency.ToString());
                     return quoteBidRate;
                 }
                 else if ((quoteToCurrency == fromCurrency) && (quoteFromCurrency == toCurrency))
                 {
-                    return 1.0 / quoteBidRate;
+                    Console.Out.WriteLine("Reverse " + fromCurrency.ToString() + " to " + toCurrency.ToString());
+                    return 1.0 / quoteAskRate;
                 }
-                else if ((quoteFromCurrency == fromCurrency) && Recurse)
+            }
+
+            if (Recurse)
+            {
+                foreach (DataQuote dataQuote in dataQuotes)
                 {
-                    double secRate = scanRate(quoteToCurrency, toCurrency, false);
-                    if (secRate > 0) return quoteBidRate * secRate;
-                }
-                else if ((quoteToCurrency == fromCurrency) && Recurse)
-                {
-                    double secRate = scanRate(quoteFromCurrency, toCurrency, false);
-                    if (secRate > 0) return quoteBidRate / secRate;
+                    Currency quoteFromCurrency = dataQuote.getFromCurrency();
+                    Currency quoteToCurrency = dataQuote.getToCurrency();
+                    double quoteBidRate = dataQuote.getBidRate();
+                    double quoteAskRate = dataQuote.getAskRate();
+
+                    if ((quoteFromCurrency == Currency.None) || (quoteToCurrency == Currency.None) || (quoteBidRate <= 0) || (quoteAskRate <= 0)) continue;
+
+                    if (quoteFromCurrency == fromCurrency) 
+                    {
+                        double secRate = scanRate(quoteToCurrency, toCurrency, false);
+                        if (secRate > 0) return quoteBidRate * secRate;
+                    }
+                    else if (quoteToCurrency == fromCurrency) 
+                    {
+                        double secRate = scanRate(quoteFromCurrency, toCurrency, false);
+                        if (secRate > 0) return secRate / quoteAskRate;
+                    }
                 }
             }
 
