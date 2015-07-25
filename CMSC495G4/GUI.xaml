@@ -20,6 +20,5 @@
         <TextBox x:Name="tbEquals" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" VerticalAlignment="Top" Width="160" Margin="0,143,0,0" Grid.Column="2" IsReadOnly="True"/>
         <TextBlock x:Name="tbStatus" HorizontalAlignment="Left" TextWrapping="Wrap" VerticalAlignment="Top" Grid.ColumnSpan="3" Margin="22,181,0,0" RenderTransformOrigin="0.218,-1.253" Height="40" Width="278" Text=""/>
         <ComboBox x:Name="cbFrom" HorizontalAlignment="Left" VerticalAlignment="Top" Width="160" Margin="1,62,0,0" Grid.Column="2" Height="22" SelectedIndex="0" SelectionChanged="cbFrom_SelectionChanged" Loaded="cbFrom_Loaded"/>
-        <Label Name="lblDebug" Content="" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="9,209,0,0" Grid.ColumnSpan="3" Width="296" Height="26"/>
     </Grid>
 </Window>

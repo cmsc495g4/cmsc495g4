@@ -1,4 +1,26 @@
-﻿using System;
+﻿/*
+ *  CMSC 495 6980 Current Trends and Projects in Computer Science (2155)
+ *  Prof. Hung Dao
+ * 
+ *  Group 4: Christopher DeVault-Edmondson, Zebider Firde, Leah Rojesky
+ * 
+ *  Project: Currency Converter
+ *  
+ */
+
+/*
+ *  Solution: CMSC495G4
+ *  
+ *      File: GUI.xaml.cs
+ * 
+ *  Contents: Class GUI - provides the Windows Presentation Framework graphical user interface 
+ *
+ *   History: Jul  8, 2015 - Christopher DeVault-Edmondson - initial build for testing
+ *            Jul 12, 2015 - Christopher DeVault-Edmondson - added prompts and code structure
+ *            Jul 24, 2015 - Christopher DeVault-Edmondson - code documentation and cleanup
+ */
+
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -26,15 +48,17 @@ namespace CMSC495G4
         // Field variables
         //
 
-        private double fromAmount = -1;
-        private Currency fromCurrency = Currency.None;
-        private Currency toCurrency = Currency.None;
+        private double fromAmount = -1; // from amount input from the user
+        private Currency fromCurrency = Currency.None; // from currency input from the user
+        private Currency toCurrency = Currency.None; // to currency input from the user
 
-        private ConversionEngine conversionEngine = null;
+        private ConversionEngine conversionEngine = null; // conversion engine instance at construction
 
         //
         // Interface methods
         //
+        
+        // constructor - create the conversion engine, initialize the GUI and set up the display
         public GUI()
         {
             conversionEngine = new ConversionEngine(this);
@@ -44,11 +68,13 @@ namespace CMSC495G4
             updateDisplay();
         }
 
+        // when user presses convert button, update the amount immediately even if timer has not fired
         public void buttonConvert()
         {
             conversionEngine.updateToAmount();
         }
 
+        // when user presses clear, reset all inputs to defaults
         public void buttonClear()
         {
             GUISetFromAmount("");
@@ -56,34 +82,41 @@ namespace CMSC495G4
             GUISetToCurrency(Currency.None);
         }
 
+        // when the from amount has changed, update the display and conversion engine
         public void fromAmountChanged()
         {
             updateDisplay();
             conversionEngine.setFromAmount(fromAmount);
         }
 
+        // when the from currency has changed, update the display and conversion engine
         public void fromCurrencyChanged()
         {
             updateDisplay();
             conversionEngine.setFromCurrency(fromCurrency);
         }
 
+        // when the to currency has changed, update the display and conversion engine
         public void toCurrencyChanged()
         {
             updateDisplay();
             conversionEngine.setToCurrency(toCurrency);
         }
-
+        
+        // when the display needs to be updated, display the converted amount if known and any appropriate message
         public void updateDisplay()
         {
+            // display the to amount if we know it
             double toAmount = conversionEngine.getToAmount();
             GUISetToAmount(toAmount >= 0 ? toAmount.ToString("N2") : "");
 
+            // determine which user inputs are known
             bool haveFromAmount = fromAmount >= 0;
             bool haveFromCurrency = fromCurrency != Currency.None;
             bool haveToCurrency = toCurrency != Currency.None;
             bool haveAll = haveFromAmount && haveFromCurrency && haveToCurrency;
 
+            // compose an appropriate prompt if not all inputs are known
             string message = "";
             if (!haveAll)
             {
@@ -95,36 +128,43 @@ namespace CMSC495G4
                 if (!haveToCurrency) { message += (num > 0 && exp > 2 ? "," : "") + (num == exp - 1 && exp >= 2 ? " and" : "") + " to currency"; num++; }
                 message += ".";
             }
+            // if they are all known use the prompt from the conversion engine
             else
             {
                 message = conversionEngine.getStatus();
             }
-                             
+            
+            // update the WPF controls with this composed information     
             GUISetStatus(message);
         }
 
         //
-        // Windows Presentation Framework 
+        // Windows Presentation Framework - these methods are the raw interface to Windows
         //
 
+        // this is the previous input amount for comparison
         private string previousTBAmount;
 
+        // at initialization, set up the components and the previous amount
         private void GUIInitialize()
         {
             InitializeComponent();
             previousTBAmount = tbAmount.Text;
         }
 
+        // handle convert button click by passing up
         private void btnConvert_Click(object sender, RoutedEventArgs e)
         {
             buttonConvert();
         }
 
+        // handle the clear button click by passing up
         private void btnClear_Click(object sender, RoutedEventArgs e)
         {
             buttonClear();
         }
 
+        // when the text box for from amount changes, validate it as a two decimal place currency amount before accepting
         private void tbAmount_TextChanged(object sender, TextChangedEventArgs e)
         {
             double wasAmount = fromAmount;
@@ -173,6 +213,7 @@ namespace CMSC495G4
             }
         }
 
+        // when from currency changes, pass up the information
         private void cbFrom_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             Currency wasCurrency = fromCurrency;
@@ -180,6 +221,7 @@ namespace CMSC495G4
             if (fromCurrency != wasCurrency) fromCurrencyChanged();
         }
 
+        // when to currency changes, pass up the information
         private void cbTo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             Currency wasCurrency = toCurrency;
@@ -187,6 +229,7 @@ namespace CMSC495G4
             if (toCurrency != wasCurrency) toCurrencyChanged();
         }
 
+        // pass up the description of an enumerated currency type e.g. EUR -> Euro
         private static string GetDescription(Enum en)
         {
             Type type = en.GetType();
@@ -202,6 +245,7 @@ namespace CMSC495G4
             return en.ToString();
         }
 
+        // load the combo boxes with the list of possible supported currencies
         private static void LoadComboBox(ComboBox comboBox)
         {
             Currency[] currencies = (Currency[])Enum.GetValues(typeof(Currency));
@@ -212,44 +256,46 @@ namespace CMSC495G4
             }
         }
 
+        // when the from box is loaded, set up the selections
         private void cbFrom_Loaded(object sender, RoutedEventArgs e)
         {
             LoadComboBox((ComboBox)sender);
         }
 
+        // when the to box is loaded, set up the selections
         private void cbTo_Loaded(object sender, RoutedEventArgs e)
         {
             LoadComboBox((ComboBox)sender);
         }
 
+        // allow setting the from currency combo box
         private void GUISetFromCurrency(Currency fromCurrency)
         {
             cbFrom.SelectedIndex = (int)fromCurrency;
         }
 
+        // allow setting the to currency combo box
         private void GUISetToCurrency(Currency toCurrency)
         {
             cbTo.SelectedIndex = (int)toCurrency;
         }
 
+        // allow setting the from amount
         private void GUISetFromAmount(string fromAmount)
         {
             tbAmount.Text = fromAmount;
         }
 
+        // allow setting the to amount 
         private void GUISetToAmount(string toAmount)
         {
             tbEquals.Text = toAmount;
         }
 
+        // allow setting the status display
         private void GUISetStatus(string status)
         {
             tbStatus.Text = status;
-        }
-
-        private void GUISetDebug(string debug)
-        {
-            lblDebug.Content = debug;
         }
     }
 }
