@@ -1,4 +1,29 @@
-﻿using System;
+﻿/*
+ *  CMSC 495 6980 Current Trends and Projects in Computer Science (2155)
+ *  Prof. Hung Dao
+ * 
+ *  Group 4: Christopher DeVault-Edmondson, Zebider Firde, Leah Rojesky
+ * 
+ *  Project: Currency Converter
+ *  
+ */
+
+/*
+ *  Solution: CMSC495G4
+ *  
+ *      File: DataProvider.cs
+ * 
+ *  Contents: Class DataProvider - provides functionality to retrieve live conversion quotes from the web
+ *
+ *   History: Jul  8, 2015 - Christopher DeVault-Edmondson - initial build for testing
+ *            Jul 12, 2015 - Christopher DeVault-Edmondson - added prompts and code structure
+ *            Jul 19, 2015 - Christopher DeVault-Edmondson - added backup data source capability and reporting
+ *            Jul 23, 2015 - Christopher DeVault-Edmondson - fixed issue with quote to base conversions
+ *            "              "                             - removed temporary console outputs
+ *            Jul 24, 2015 - Christopher DeVault-Edmondson - code documentation and cleanup
+ */
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,33 +34,39 @@ using System.Timers;
 
 namespace CMSC495G4
 {
+    // model the DataProvider class - retrieve live conversion quotes from the web
     class DataProvider
     {
+        // 
+        // Constants
+        //
+
+        private const double updateMilliseconds = 500; // how frequently to update the display?
+        private const string dataURL = "http://webrates.truefx.com/rates/connect.html?f=csv"; // primary data source URL
+        private const string backupURL = "http://www.google.com/finance?q="; // backup data source URL base
+        private const string backupMarker = "<span class=bld>"; // backup data source data result marker
+
         //
         // Field variables
         //
 
-        private const double updateMilliseconds = 500;
-        private const string dataURL = "http://webrates.truefx.com/rates/connect.html?f=csv";
-        private const string backupURL = "http://www.google.com/finance?q=";
-        private const string backupMarker = "<span class=bld>";
+        private static List<DataProvider> dataProviderList = new List<DataProvider>(); // static list of data providers for timer
 
-        private static List<DataProvider> dataProviderList = new List<DataProvider>();
+        private ConversionEngine conversionEngine = null; // conversion engine reference from construction
 
-        private ConversionEngine conversionEngine = null;
+        private Currency fromCurrency = Currency.None; // currency to convert from
+        private Currency toCurrency = Currency.None; // currency to convert to
+        private double rate = 0; // conversion rate determined, or <=0 for none/unknown
+        private List<DataQuote> dataQuotes = new List<DataQuote>(); // list of primary data source quotes that are known
+        private string status = ""; // status from conversion
 
-        private Currency fromCurrency = Currency.None;
-        private Currency toCurrency = Currency.None;
-        private double rate = 0;
-        private List<DataQuote> dataQuotes = new List<DataQuote>();
-        private string status = "";
-
-        private static System.Timers.Timer timer;
+        private static System.Timers.Timer timer; // singleton static timer instance to update all data provider instances
 
         //
         // Interface methods
         //
 
+        // constructor - save conversion engine reference, make initial primary data request, start the timer (if not already) and add this instance to the list
         public DataProvider(ConversionEngine conversionEngine)
         {
             this.conversionEngine = conversionEngine;
@@ -52,6 +83,7 @@ namespace CMSC495G4
             dataProviderList.Add(this);
         }
 
+        // destructor - remove this instance from the list, and if it's the last instance, stop the timer 
         ~DataProvider()
         {
             dataProviderList.Remove(this);
@@ -63,6 +95,7 @@ namespace CMSC495G4
             }
         }
 
+        // setter accessor method for fromCurrency - update the rate if appropriate
         public void setFromCurrency(Currency fromCurrency)
         {
             Currency wasCurrency = this.fromCurrency;
@@ -72,6 +105,7 @@ namespace CMSC495G4
             if (this.fromCurrency != wasCurrency) updateRate();
         }
 
+        // setter accessor method for toCurrency - update the rate if appropriate
         public void setToCurrency(Currency toCurrency)
         {
             Currency wasCurrency = this.toCurrency;
@@ -81,28 +115,35 @@ namespace CMSC495G4
             if (this.toCurrency != wasCurrency) updateRate();
         }
 
+        // getter accessor method for fromCurrency
         public Currency getFromCurrency()
         {
             return fromCurrency;
         }
 
+        // getter accessor method for toCurrency
         public Currency getToCurrency()
         {
             return toCurrency;
         }
 
+        // getter accessor method for rate
         public double getRate()
         {
             return rate;
         }
 
+        // update the primary list of known data quotes from the primary provider
         public void updateDataQuotes()
         {
+            // make a request from the primary data source URL
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(dataURL);
             HttpWebResponse response = (HttpWebResponse)request.GetResponse();
 
+            // only if we successfully received a response, receive it and process
             if (response.StatusCode == HttpStatusCode.OK)
             {
+                // retrieve a stream of the response in whatever character set it is provider in
                 Stream receiveStream = response.GetResponseStream();
                 StreamReader readStream = null;
 
@@ -115,15 +156,21 @@ namespace CMSC495G4
                     readStream = new StreamReader(receiveStream, Encoding.GetEncoding(response.CharacterSet));
                 }
 
+                // read the entire stream contents
                 string data = readStream.ReadToEnd();
 
+                // clean up the response and the stream
                 response.Close();
                 readStream.Close();
 
+                // clear the list of known quotes, split the response by line feed and iterate the lines
                 dataQuotes.Clear();
                 string[] lines = data.Split('\n');
                 foreach (string line in lines)
                 {
+                    // split the CSV lines into each field and break down the contents;
+                    // for numeric values, attempt to parse to a valid number; 
+                    // for currency values, attempt to parse to a supported currency code e.g. EUR
                     string[] fields = line.Split(',');
                     string pair = fields.Length >= 1 ? fields[0] : "";
                     string timestr = fields.Length >= 2 ? fields[1] : "";
@@ -174,62 +221,77 @@ namespace CMSC495G4
                         }
                     }
 
+                    // after parsing each field, if all are known and available, add the quote to the list of known quotes
                     if ((currency1 != Currency.None) && (currency2 != Currency.None) && bidsuccess && asksuccess && tssuccess)
                     {
                         dataQuotes.Add(new DataQuote(currency1, currency2, bidnum, asknum, tsnum));
                     }
                 }
 
+                // now that the list of known quotes has been updated, update the rate with this new information
                 updateRate();
             }
         }
 
+        // on each tick of the timer for this instance, update the known quote list from the live primary data source
         public void timerTick()
         {
             updateDataQuotes();
         }
 
+        // update the rate using the known primary data source if possible; if not possible but from and to currencies are
+        // known, then try to get the corresponding information from the secondary data source
         public void updateRate()
         {
             double wasRate = rate;
             string wasStatus = status;
 
+            // if either from or to currency is unknown the rate is unknowable
             if ((fromCurrency == Currency.None) || (toCurrency == Currency.None))
             {
                 rate = 0;
                 status = "";
             }
+            // if it is from a currency to itself, the rate is obviously 1:1
             else if (fromCurrency == toCurrency)
             {
                 rate = 1;
                 status = "";
             }
+            // otherwise, scan the primary rate quote table to look for the answer
             else
             {
                 rate = scanRate(fromCurrency, toCurrency, true);
+                // if that fails, check the backup data source and if that fails, report failure
                 if (rate <= 0)
                 {
                     rate = backupRate(fromCurrency, toCurrency);
                     status = rate > 0 ? "backup" : fromCurrency + " to " + toCurrency + " unavailable";
                 }
+                // report the result from the primary - no status indicates success with no comment
                 else
                 {
-                    status = rate > 0 ? "" : fromCurrency + " to " + toCurrency + " unavailable";
+                    status = "";
                 }
             }
 
+            // if the rate has ultimately been updated, update the conversion engine
             if ((rate != wasRate) || (status != wasStatus)) conversionEngine.setRate(rate);
         }
 
+        // accessor method to return the status
         public string getStatus()
         {
             return status;
         }
 
+        // recursively scan the primary rate quote table
         private double scanRate(Currency fromCurrency, Currency toCurrency, bool Recurse)
         {
+            // if either rate is unknown we cannot do this
             if ((fromCurrency == Currency.None) || (toCurrency == Currency.None)) return 0;
 
+            // first, try to match a forwards or backwards quote with a single step
             foreach (DataQuote dataQuote in dataQuotes)
             {
                 Currency quoteFromCurrency = dataQuote.getFromCurrency();
@@ -249,6 +311,7 @@ namespace CMSC495G4
                 }
             }
 
+            // if that fails and this is the first step, try to get halfway there and match the second half with a second step
             if (Recurse)
             {
                 foreach (DataQuote dataQuote in dataQuotes)
@@ -273,17 +336,22 @@ namespace CMSC495G4
                 }
             }
 
+            // if that fails also, return that we cannot know the rate from the information we have
             return 0;
         }
 
+        // retrieve a spot quote conversion rate from the backup data source
         private double backupRate(Currency fromCurrency, Currency toCurrency)
         {
+            // compose a URL request for this specific currency as a spot request
             string url = backupURL + fromCurrency + toCurrency;
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
             HttpWebResponse response = (HttpWebResponse)request.GetResponse();
 
+            // only if we get a successful response, retrieve and parse it
             if (response.StatusCode == HttpStatusCode.OK)
             {
+                // receive the whole response into a stream of the right encoding
                 Stream receiveStream = response.GetResponseStream();
                 StreamReader readStream = null;
 
@@ -296,27 +364,34 @@ namespace CMSC495G4
                     readStream = new StreamReader(receiveStream, Encoding.GetEncoding(response.CharacterSet));
                 }
 
+                // read the entire stream contents
                 string data = readStream.ReadToEnd();
 
+                // clean up the response and stream
                 response.Close();
                 readStream.Close();
 
+                // clear the primary quotes since they do not contain the answer, and parse the lines we did receive
                 dataQuotes.Clear();
                 string[] lines = data.Split('\n');
                 foreach (string line in lines)
                 {
+                    // check each line for the marker indicating the answer
                     int i1 = line.IndexOf(backupMarker);
                     if (i1 > 0) 
                     {
+                        // if we find that, scan until the next space
                         string s = line.Substring(i1 + backupMarker.Length).Trim();
                         int i2 = s.IndexOf(" ");
                         if (i2 > 0)
                         {
+                            // get the data after the marker and before the space, and convert it to a double rate
                             s = s.Substring(0, i2);
                             double r = 0;
                             bool success = double.TryParse(s, out r);
                             if (success && (r > 0))
                             {
+                                // if it's a valid positive number, return the answer
                                 return r;
                             }
                         }
@@ -324,6 +399,7 @@ namespace CMSC495G4
                 }
             }
 
+            // if all else fails, return that we could not find the answer from the backup data source
             return 0;
         }
 
@@ -331,11 +407,12 @@ namespace CMSC495G4
         // Windows Presentation Framework 
         //
 
+        // when the static timer fires, trigger the timer on each instance to update the GUI with live information
         private static void OnTimedEvent(object source, ElapsedEventArgs e)
         {
             foreach (DataProvider dataProvider in dataProviderList)
             {
-                //dataProvider.timerTick();
+                dataProvider.timerTick();
             }
         }
     }
